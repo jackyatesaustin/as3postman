@@ -1,0 +1,639 @@
+{
+	"info": {
+		"_postman_id": "ad34bf60-d8d7-40fd-b0d7-e12bb2cdd460",
+		"name": "BIG-IQ",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "AS3 GET",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c88d364f-e6f6-47ba-ad91-9eb6e64fbaf5",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "X-F5-Auth-Token",
+						"value": "{{_f5_token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://{{bigiq_mgmt}}/mgmt/shared/appsvcs/declare",
+					"protocol": "https",
+					"host": [
+						"{{bigiq_mgmt}}"
+					],
+					"path": [
+						"mgmt",
+						"shared",
+						"appsvcs",
+						"declare"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "1 - Authenticate to BIG-IQ",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "b83715b8-4c00-4d1e-a218-07cfc3bd450a",
+						"exec": [
+							"var jsonData = JSON.parse(responseBody);",
+							"pm.globals.set(\"_bigiq_token\", jsonData.token.token);",
+							"pm.globals.set(\"_bigiq_refresh_token\", jsonData.refreshToken.token);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"username\": \"admin\",\r\n  \"password\": \"admin\",\r\n  \"loginProviderName\": \"tmos\"\r\n}"
+				},
+				"url": {
+					"raw": "https://{{bigiq_server}}/mgmt/shared/authn/login",
+					"protocol": "https",
+					"host": [
+						"{{bigiq_server}}"
+					],
+					"path": [
+						"mgmt",
+						"shared",
+						"authn",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "1 - Refresh Token",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "59a0727f-377b-4181-8967-3813f2dcc0fe",
+						"exec": [
+							"var jsonData = JSON.parse(responseBody);",
+							"pm.globals.set(\"_bigiq_token\", jsonData.token.token);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n \"refreshToken\":{\"token\":\"{{_bigiq_refresh_token}}\"}\r\n}"
+				},
+				"url": {
+					"raw": "https://{{bigiq_server}}/mgmt/shared/authn/exchange",
+					"protocol": "https",
+					"host": [
+						"{{bigiq_server}}"
+					],
+					"path": [
+						"mgmt",
+						"shared",
+						"authn",
+						"exchange"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2 - Deploy App w/o Template",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c88d364f-e6f6-47ba-ad91-9eb6e64fbaf5",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "X-F5-Auth-Token",
+						"value": "{{_bigiq_token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"class\": \"AS3\",\r\n    \"declaration\": {\r\n        \"class\": \"ADC\",\r\n        \"schemaVersion\": \"3.7.0\",\r\n        \"id\": \"thisisanid\",\r\n        \"label\": \"App1\",\r\n        \"remark\": \"HTTP with custom persistence\",\r\n        \"target\": {\r\n            \"hostname\": \"bigip01.as3lab.com\"\r\n        },\r\n        \"DemoService\": {\r\n            \"class\": \"Tenant\",\r\n            \"App1\": {\r\n                \"class\": \"Application\",\r\n                \"template\": \"http\",\r\n                \"serviceMain\": {\r\n                    \"class\": \"Service_HTTP\",\r\n                    \"virtualAddresses\": [\r\n                        \"10.1.10.50\"\r\n                    ],\r\n                    \"pool\": \"web_pool\"\r\n                    \r\n                },\r\n                \"web_pool\": {\r\n                    \"class\": \"Pool\",\r\n                    \"monitors\": [\r\n                        \"http\"\r\n                    ],\r\n                    \"members\": [{\r\n                    \"servicePort\": 22,\r\n                    \"serverAddresses\": [\r\n                        \"10.1.10.101\"\r\n                    ]\r\n                    }]\r\n                }\r\n            }\r\n        }\r\n    }\r\n}"
+				},
+				"url": {
+					"raw": "https://{{bigiq_server}}/mgmt/shared/appsvcs/declare",
+					"protocol": "https",
+					"host": [
+						"{{bigiq_server}}"
+					],
+					"path": [
+						"mgmt",
+						"shared",
+						"appsvcs",
+						"declare"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2 - Get Application Reference",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "ce6091ef-4105-41dd-8140-0bb53ba6735b",
+						"exec": [
+							"var jsonData = JSON.parse(responseBody);",
+							"pm.globals.set(\"_bigiq_app_ref\", jsonData.items[0].selfLink);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "X-F5-Auth-Token",
+						"value": "{{_bigiq_token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "https://{{bigiq_server}}/mgmt/cm/global/config-sets/",
+					"protocol": "https",
+					"host": [
+						"{{bigiq_server}}"
+					],
+					"path": [
+						"mgmt",
+						"cm",
+						"global",
+						"config-sets",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2 - Move out of Unknown App",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c88d364f-e6f6-47ba-ad91-9eb6e64fbaf5",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "X-F5-Auth-Token",
+						"type": "text",
+						"value": "{{_bigiq_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"componentAppReferencesToMove\": [{\r\n            \"link\": \"{{_bigiq_app_ref}}\"\r\n    }],\r\n    \"targetGlobalAppName\": \"Known Applications\",\r\n    \"deleteEmptyGlobalAppsWhenDone\": false,\r\n    \"requireNewGlobalApp\": true\r\n}"
+				},
+				"url": {
+					"raw": "https://{{bigiq_server}}/mgmt/cm/global/global-apps-merge-move",
+					"protocol": "https",
+					"host": [
+						"{{bigiq_server}}"
+					],
+					"path": [
+						"mgmt",
+						"cm",
+						"global",
+						"global-apps-merge-move"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "2 - Delete App w/o Template",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c88d364f-e6f6-47ba-ad91-9eb6e64fbaf5",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "X-F5-Auth-Token",
+						"value": "{{_bigiq_token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"class\": \"AS3\",\r\n    \"action\": \"patch\",\r\n    \"patchBody\": [\r\n        {\r\n            \"class\": \"ADC\",\r\n            \"target\": {\r\n                \"address\": \"10.1.1.4\"\r\n            },\r\n            \"op\": \"remove\",\r\n            \"path\": \"/DemoService/App1\"\r\n        }\r\n    ]\r\n}"
+				},
+				"url": {
+					"raw": "https://{{bigiq_server}}/mgmt/shared/appsvcs/declare",
+					"protocol": "https",
+					"host": [
+						"{{bigiq_server}}"
+					],
+					"path": [
+						"mgmt",
+						"shared",
+						"appsvcs",
+						"declare"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3 - Upload App Template to BIG-IQ",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c88d364f-e6f6-47ba-ad91-9eb6e64fbaf5",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "X-F5-Auth-Token",
+						"value": "{{_bigiq_token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"description\": \"For load balancing an HTTP application on port 80.\",\n    \"name\": \"AS3-F5-HTTP-lb-template-big-iq-default-v1\",\n    \"published\": false,\n    \"isUICompatible\": true,\n    \"tenant\": {\n        \"name\": \"\",\n        \"override\": false,\n        \"editable\": true\n    },\n    \"schemaOverlay\": {\n        \"type\": \"object\",\n        \"properties\": {\n            \"class\": {\n                \"type\": \"string\",\n                \"const\": \"Application\"\n            },\n            \"template\": {},\n            \"schemaOverlay\": {},\n            \"label\": {},\n            \"remark\": {}\n        },\n        \"additionalProperties\": {\n            \"allOf\": [\n                {\n                    \"anyOf\": [\n                        {\n                            \"properties\": {\n                                \"class\": {\n                                    \"const\": \"Analytics_Profile\"\n                                }\n                            }\n                        },\n                        {\n                            \"properties\": {\n                                \"class\": {\n                                    \"const\": \"HTTP_Profile\"\n                                }\n                            }\n                        },\n                        {\n                            \"properties\": {\n                                \"class\": {\n                                    \"const\": \"Pool\"\n                                }\n                            }\n                        },\n                        {\n                            \"properties\": {\n                                \"class\": {\n                                    \"const\": \"Service_HTTP\"\n                                }\n                            }\n                        }\n                    ]\n                },\n                {\n                    \"if\": {\n                        \"properties\": {\n                            \"class\": {\n                                \"const\": \"Analytics_Profile\"\n                            }\n                        }\n                    },\n                    \"then\": {\n                        \"$ref\": \"#/definitions/Analytics_Profile\"\n                    }\n                },\n                {\n                    \"if\": {\n                        \"properties\": {\n                            \"class\": {\n                                \"const\": \"HTTP_Profile\"\n                            }\n                        }\n                    },\n                    \"then\": {\n                        \"$ref\": \"#/definitions/HTTP_Profile\"\n                    }\n                },\n                {\n                    \"if\": {\n                        \"properties\": {\n                            \"class\": {\n                                \"const\": \"Pool\"\n                            }\n                        }\n                    },\n                    \"then\": {\n                        \"$ref\": \"#/definitions/Pool\"\n                    }\n                },\n                {\n                    \"if\": {\n                        \"properties\": {\n                            \"class\": {\n                                \"const\": \"Service_HTTP\"\n                            }\n                        }\n                    },\n                    \"then\": {\n                        \"$ref\": \"#/definitions/Service_HTTP\"\n                    }\n                }\n            ]\n        },\n        \"required\": [\n            \"class\"\n        ],\n        \"definitions\": {\n            \"Analytics_Profile\": {\n                \"properties\": {\n                    \"class\": {},\n                    \"collectUserAgent\": {\n                        \"type\": \"boolean\"\n                    },\n                    \"collectClientSideStatistics\": {\n                        \"type\": \"boolean\",\n                        \"default\": true\n                    },\n                    \"collectGeo\": {\n                        \"type\": \"boolean\"\n                    },\n                    \"collectUrl\": {\n                        \"type\": \"boolean\"\n                    },\n                    \"collectPageLoadTime\": {\n                        \"type\": \"boolean\"\n                    },\n                    \"collectOsAndBrowser\": {\n                        \"type\": \"boolean\",\n                        \"default\": false\n                    },\n                    \"collectMethod\": {\n                        \"type\": \"boolean\",\n                        \"default\": false\n                    },\n                    \"collectResponseCode\": {\n                        \"type\": \"boolean\",\n                        \"default\": true\n                    },\n                    \"collectIp\": {\n                        \"type\": \"boolean\"\n                    }\n                },\n                \"type\": \"object\",\n                \"additionalproperties\": false\n            },\n            \"HTTP_Profile\": {\n                \"properties\": {\n                    \"class\": {},\n                    \"fallbackRedirect\": {\n                        \"type\": \"string\",\n                        \"default\": \"https://www.example.com/404\"\n                    },\n                    \"fallbackStatusCodes\": {\n                        \"type\": \"array\",\n                        \"default\": [\n                            404\n                        ]\n                    }\n                },\n                \"type\": \"object\",\n                \"additionalproperties\": false\n            },\n            \"Pool\": {\n                \"properties\": {\n                    \"class\": {},\n                    \"members\": {\n                        \"type\": \"array\",\n                        \"items\": {\n                            \"type\": \"object\",\n                            \"properties\": {\n                                \"servicePort\": {\n                                    \"type\": \"number\",\n                                    \"default\": 80\n                                },\n                                \"monitors\": {\n                                    \"type\": \"array\",\n                                    \"default\": [\n                                        \"http\"\n                                    ],\n                                    \"const\": [\n                                        \"http\"\n                                    ]\n                                },\n                                \"adminState\": {\n                                    \"type\": \"string\",\n                                    \"default\": \"enable\"\n                                },\n                                \"shareNodes\": {\n                                    \"type\": \"boolean\",\n                                    \"default\": true,\n                                    \"const\": true\n                                },\n                                \"serverAddresses\": {\n                                    \"type\": \"array\"\n                                }\n                            }\n                        }\n                    },\n                    \"monitors\": {\n                        \"type\": \"array\",\n                        \"default\": [\n                            \"http\"\n                        ],\n                        \"const\": [\n                            \"http\"\n                        ]\n                    }\n                },\n                \"type\": \"object\",\n                \"additionalproperties\": false\n            },\n            \"Service_HTTP\": {\n                \"properties\": {\n                    \"class\": {},\n                    \"virtualPort\": {\n                        \"type\": \"number\",\n                        \"default\": 80\n                    },\n                    \"profileAnalytics\": {\n                        \"type\": \"object\",\n                        \"properties\": {\n                            \"use\": {\n                                \"type\": \"string\",\n                                \"default\": \"Analytics_Profile\"\n                            }\n                        }\n                    },\n                    \"profileHTTP\": {\n                        \"type\": \"object\",\n                        \"properties\": {\n                            \"use\": {\n                                \"type\": \"string\",\n                                \"default\": \"HTTP_Profile\"\n                            }\n                        }\n                    },\n                    \"virtualAddresses\": {\n                        \"type\": \"array\"\n                    },\n                    \"pool\": {\n                        \"type\": \"string\",\n                        \"default\": \"Pool\"\n                    },\n                    \"enable\": {\n                        \"type\": \"boolean\",\n                        \"default\": true\n                    }\n                },\n                \"type\": \"object\",\n                \"additionalproperties\": false\n            }\n        }\n    }\n}"
+				},
+				"url": {
+					"raw": "https://{{bigiq_server}}/mgmt/cm/global/appsvcs-templates",
+					"protocol": "https",
+					"host": [
+						"{{bigiq_server}}"
+					],
+					"path": [
+						"mgmt",
+						"cm",
+						"global",
+						"appsvcs-templates"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3 - Create App2 with Template",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "X-F5-Auth-Token",
+						"value": "{{_bigiq_token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"class\": \"AS3\",\r\n    \"declaration\": {\r\n        \"class\": \"ADC\",\r\n        \"target\": {\r\n            \"hostname\": \"bigip01.as3lab.com\"\r\n        },\r\n        \"schemaVersion\": \"3.7.0\",\r\n        \"DemoService\": {\r\n            \"class\": \"Tenant\",\r\n             \"App2\": {\r\n                \"class\": \"Application\",\r\n                \"schemaOverlay\": \"AS3-F5-HTTP-lb-template-big-iq-default-v1\",\r\n                \"template\": \"http\",\r\n                \"serviceMain\": {\r\n                    \"class\": \"Service_HTTP\",\r\n                    \"virtualAddresses\": [\"10.0.2.23\"],\r\n                    \"pool\": \"web_pool\"\r\n                },\r\n                \"web_pool\": {\r\n                    \"class\": \"Pool\"\r\n                }\r\n            }\r\n        }\r\n    }\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://{{bigiq_server}}/mgmt/shared/appsvcs/declare",
+					"protocol": "https",
+					"host": [
+						"{{bigiq_server}}"
+					],
+					"path": [
+						"mgmt",
+						"shared",
+						"appsvcs",
+						"declare"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3 - Change App2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c88d364f-e6f6-47ba-ad91-9eb6e64fbaf5",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "X-F5-Auth-Token",
+						"value": "{{_bigiq_token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"class\": \"AS3\",\r\n    \"action\": \"patch\",\r\n    \"patchBody\": [\r\n        {\r\n            \"class\": \"ADC\",\r\n            \"target\": {\r\n                \"address\": \"10.1.1.4\"\r\n            },\r\n            \"op\": \"replace\",\r\n            \"path\": \"/DemoService/App2\",\r\n            \"value\": {\r\n                \"class\": \"Application\",\r\n                \"schemaOverlay\": \"AS3-F5-HTTP-lb-template-big-iq-default-v1\",\r\n                \"template\": \"http\",\r\n                \"serviceMain\": {\r\n                    \"class\": \"Service_HTTP\",\r\n                    \"virtualAddresses\": [\"10.0.2.24\"],\r\n                    \"pool\": \"web_pool\"\r\n                },\r\n                \"web_pool\": {\r\n                    \"class\": \"Pool\"\r\n                }\r\n            }\r\n        }\r\n    ]\r\n}"
+				},
+				"url": {
+					"raw": "https://{{bigiq_server}}/mgmt/shared/appsvcs/declare",
+					"protocol": "https",
+					"host": [
+						"{{bigiq_server}}"
+					],
+					"path": [
+						"mgmt",
+						"shared",
+						"appsvcs",
+						"declare"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3 - Delete App from Template",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c88d364f-e6f6-47ba-ad91-9eb6e64fbaf5",
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "X-F5-Auth-Token",
+						"type": "text",
+						"value": "{{_bigiq_token}}"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"class\": \"AS3\",\r\n    \"action\": \"patch\",\r\n    \"patchBody\": [\r\n        {\r\n            \"class\": \"ADC\",\r\n            \"target\": {\r\n                \"address\": \"10.1.1.4\"\r\n            },\r\n            \"op\": \"remove\",\r\n            \"path\": \"/DemoService/App2\"\r\n        }\r\n    ]\r\n}"
+				},
+				"url": {
+					"raw": "https://{{bigiq_server}}/mgmt/shared/appsvcs/declare",
+					"protocol": "https",
+					"host": [
+						"{{bigiq_server}}"
+					],
+					"path": [
+						"mgmt",
+						"shared",
+						"appsvcs",
+						"declare"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3 - GET HTTP Application Template",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "X-F5-Auth-Token",
+						"value": "{{_bigiq_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://{{bigiq_server}}/mgmt/cm/global/appsvcs-templates",
+					"protocol": "https",
+					"host": [
+						"{{bigiq_server}}"
+					],
+					"path": [
+						"mgmt",
+						"cm",
+						"global",
+						"appsvcs-templates"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "3 - DELETE HTTP Application Template",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"type": "text",
+						"value": "application/json"
+					},
+					{
+						"key": "X-F5-Auth-Token",
+						"type": "text",
+						"value": "{{_bigiq_token}}"
+					}
+				],
+				"url": {
+					"raw": "https://{{bigiq_server}}/mgmt/cm/global/appsvcs-templates/7572d736-69c0-3278-ba40-e4176a9287ac",
+					"protocol": "https",
+					"host": [
+						"{{bigiq_server}}"
+					],
+					"path": [
+						"mgmt",
+						"cm",
+						"global",
+						"appsvcs-templates",
+						"7572d736-69c0-3278-ba40-e4176a9287ac"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}
